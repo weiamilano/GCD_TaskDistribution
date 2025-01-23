@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Warehouse Management System</title>
+    <meta charset="UTF-8">
+    <!-- Excel export library -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- PDF export library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Base styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Tab styles */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+        }
+
+        .tab.active {
+            border-bottom: 2px solid #2196F3;
+            color: #2196F3;
+            margin-bottom: -2px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form styles */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #1976D2;
+        }
+
+        /* Results table styles */
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            table-layout: fixed;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .results-table th {
+            background-color: #f5f5f5;
+        }
+
+        /* Column width control */
+        .results-table th:nth-child(1),
+        .results-table td:nth-child(1) {
+            width: 15%;
+        }
+
+        .results-table th:nth-child(2),
+        .results-table td:nth-child(2) {
+            width: 15%;
+        }
+
+        .results-table th:nth-child(3),
+        .results-table td:nth-child(3) {
+            width: 12%;
+        }
+
+        .results-table th:nth-child(4),
+        .results-table td:nth-child(4) {
+            width: 13%;
+        }
+
+        .results-table th:nth-child(5),
+        .results-table td:nth-child(5) {
+            width: 45%;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .total-row {
+            background-color: #e3f2fd;
+            font-weight: bold;
+        }
+
+        .capacity-info {
+            background-color: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Step styles */
+        .step {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 4px;
+        }
+
+        .step h3 {
+            margin-top: 0;
+            color: #2196F3;
+        }
+
+        /* Employee list styles */
+        .employee-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .employee-item {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Export button styles */
+        .export-button {
+            background-color: #4CAF50;
+        }
+
+        /* Error message styles */
+        .error-message {
+            color: #f44336;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #ffebee;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Warehouse Management System</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('employees')">Employee Management</button>
+            <button class="tab" onclick="showTab('tasks')">Task Distribution</button>
+        </div>
+
+        <!-- Employee Management Page -->
+        <div id="employees" class="tab-content active">
+            <div class="employee-form">
+                <h2>Add/Edit Employee</h2>
+                <form id="employeeForm" onsubmit="saveEmployee(event)">
+                    <div class="form-group">
+                        <label>Name:</label>
+                        <input type="text" id="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Max Picking Quantity:</label>
+                        <input type="number" id="maxPicking" value="1000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="largeOrders">
+                            Can Handle Large Orders (>300)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="vhSkill">
+                            VH Skill
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="esteroSkill">
+                            ESTERO Skill
+                        </label>
+                    </div>
+                    <button type="submit">Save</button>
+                    <button type="button" onclick="resetForm()">Reset</button>
+                </form>
+            </div>
+
+            <div class="employee-list" id="employeeList">
+                <!-- Employee list will be generated here -->
+            </div>
+        </div>
+
+        <!-- Task Distribution Page -->
+        <div id="tasks" class="tab-content">
+            <div id="step1" class="step">
+                <h3>Step 1: Confirm Attendance</h3>
+                <div class="employee-list" id="attendanceList">
+                    <!-- Attendance list will be generated here -->
+                </div>
+                <button onclick="confirmAttendance()">Confirm and Continue</button>
+            </div>
+
+            <div id="step2" class="step hidden">
+                <h3>Step 2: Upload Task File</h3>
+                <input type="file" id="taskFile" accept=".csv">
+                <button onclick="uploadAndDistribute()">Start Distribution</button>
+            </div>
+
+            <div id="step3" class="step hidden">
+                <h3>Step 3: Distribution Results</h3>
+                <div id="distributionResults">
+                    <!-- Distribution results will be generated here -->
+                </div>
+                <div class="export-buttons">
+                    <button onclick="exportToExcel()" class="export-button">Export Excel</button>
+                    <button onclick="exportToPDF()" class="export-button">Export PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let employees = JSON.parse(localStorage.getItem('employees') || '{}');
+        let selectedEmployee = null;
+        let taskData = null;
+        let distributionResults = null;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshEmployeeList();
+        });
+
+        // Tab switching
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabId === 'tasks') {
+                refreshAttendanceList();
+                document.getElementById('step2').classList.add('hidden');
+                document.getElementById('step3').classList.add('hidden');
+                document.getElementById('step1').classList.remove('hidden');
+            }
+        }
+
+        // Employee management functions
+        function saveEmployee(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const employee = {
+                name: name,
+                maxPicking: parseInt(document.getElementById('maxPicking').value),
+                canHandleLargeOrders: document.getElementById('largeOrders').checked,
+                hasVhSkill: document.getElementById('vhSkill').checked,
+                hasEsteroSkill: document.getElementById('esteroSkill').checked,
+                isPresent: false
+            };
+            
+            employees[name] = employee;
+            localStorage.setItem('employees', JSON.stringify(employees));
+            refreshEmployeeList();
+            resetForm();
+        }
+
+        function refreshEmployeeList() {
+            const list = document.getElementById('employeeList');
+            list.innerHTML = '';
+            Object.entries(employees).forEach(([name, emp]) => {
+                const div = document.createElement('div');
+                div.className = 'employee-item';
+                div.innerHTML = `
+                    <div>${name}</div>
+                    <div>Max Picking: ${emp.maxPicking}</div>
+                    <div>
+                        <button onclick="editEmployee('${name}')">Edit</button>
+                        <button onclick="deleteEmployee('${name}')">Delete</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function editEmployee(name) {
+            selectedEmployee = name;
+            const emp = employees[name];
+            document.getElementById('name').value = emp.name;
+            document.getElementById('name').disabled = true;
+            document.getElementById('maxPicking').value = emp.maxPicking;
+            document.getElementById('largeOrders').checked = emp.canHandleLargeOrders;
+            document.getElementById('vhSkill').checked = emp.hasVhSkill;
+            document.getElementById('esteroSkill').checked = emp.hasEsteroSkill;
+        }
+
+        function deleteEmployee(name) {
+            if (confirm(`确定要删除员工 ${name} 吗？`)) {
+                delete employees[name];
+                localStorage.setItem('employees', JSON.stringify(employees));
+                refreshEmployeeList();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('employeeForm').reset();
+            document.getElementById('name').disabled = false;
+            selectedEmployee = null;
+        }
+
+        // Task distribution functions
+        function refreshAttendanceList() {
+            const list = document.getElementById('attendanceList');
+            list.innerHTML = '';
+            Object.entries(employees).forEach(([name, emp]) => {
+                const div = document.createElement('div');
+                div.className = 'employee-item';
+                div.innerHTML = `
+                    <label>
+                        <input type="checkbox" 
+                               ${emp.isPresent ? 'checked' : ''} 
+                               onchange="updateAttendance('${name}', this.checked)">
+                        ${name}
+                    </label>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function updateAttendance(name, isPresent) {
+            if (employees[name]) {
+                employees[name].isPresent = isPresent;
+                localStorage.setItem('employees', JSON.stringify(employees));
+            }
+        }
+
+        function confirmAttendance() {
+            const presentEmployees = Object.values(employees).filter(emp => emp.isPresent);
+            if (presentEmployees.length === 0) {
+                alert('请至少选择一名出勤员工！');
+                return;
+            }
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+        }
+
+        function uploadAndDistribute() {
+            const fileInput = document.getElementById('taskFile');
+            if (!fileInput.files[0]) {
+                alert('请选择任务文件！');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                taskData = parseCSV(e.target.result);
+                distributionResults = distributeTasksToEmployees(taskData);
+                displayResults(distributionResults);
+                document.getElementById('step2').classList.add('hidden');
+                document.getElementById('step3').classList.remove('hidden');
+            };
+            reader.readAsText(fileInput.files[0]);
+        }
+
+        function parseCSV(csv) {
+            const lines = csv.split(/\r?\n/);
+            if (lines.length < 2) return [];
+
+            const headers = parseCSVLine(lines[0]);
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const values = parseCSVLine(lines[i]);
+                if (values.length === headers.length) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index];
+                    });
+                    data.push(row);
+                }
+            }
+            return data;
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let inQuotes = false;
+            let currentValue = '';
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        currentValue += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(currentValue.trim());
+                    currentValue = '';
+                } else {
+                    currentValue += char;
+                }
+            }
+            
+            result.push(currentValue.trim());
+            return result.map(value => value.replace(/^"(.*)"$/, '$1').trim());
+        }
+
+        function distributeTasksToEmployees(tasks) {
+            const results = {
+                employeeTasks: {},
+                twoPOrders: [],
+                unassigned: []
+            };
+
+            const presentEmployees = Object.entries(employees)
+                .filter(([_, emp]) => emp.isPresent)
+                .map(([name, emp]) => ({
+                    name,
+                    ...emp,
+                    currentTotal: 0,
+                    remainingCapacity: emp.maxPicking
+                }));
+
+            presentEmployees.forEach(emp => {
+                results.employeeTasks[emp.name] = [];
+            });
+
+            // Separate and process orders
+            const normalOrders = [];
+            tasks.forEach(task => {
+                const notes = task['Nota (privata)'] || '';
+                if (notes.includes('2P')) {
+                    results.twoPOrders.push(task);
+                } else {
+                    // Parse date and add order info
+                    const orderDate = task['Data ordine'] ? new Date(task['Data ordine']) : new Date(0);
+                    normalOrders.push({
+                        ...task,
+                        packQty: parseInt(task['Pack Qty']) || 0,
+                        hasVH: notes.includes('VH'),
+                        hasEstero: notes.includes('ESTERO'),
+                        isUrgent: notes.includes('URGENTE'),
+                        orderDate: orderDate
+                    });
+                }
+            });
+
+            // Sort orders by date first, then urgent flag
+            normalOrders.sort((a, b) => {
+                // Primary sort by date
+                const dateCompare = a.orderDate - b.orderDate;
+                if (dateCompare !== 0) return dateCompare;
+                
+                // Secondary sort by urgent flag
+                if (a.isUrgent !== b.isUrgent) return b.isUrgent ? 1 : -1;
+                
+                // Finally sort by quantity
+                return b.packQty - a.packQty;
+            });
+
+            // Distribute orders
+            normalOrders.forEach(order => {
+                const eligibleEmployees = presentEmployees.filter(emp => {
+                    // Check basic requirements
+                    if (order.packQty > 300 && !emp.canHandleLargeOrders) return false;
+                    if (order.hasVH && !emp.hasVhSkill) return false;
+                    if (order.hasEstero && !emp.hasEsteroSkill) return false;
+                    return emp.remainingCapacity >= order.packQty;
+                });
+
+                if (eligibleEmployees.length > 0) {
+                    // Select employee with balanced workload
+                    const bestEmployee = eligibleEmployees.reduce((best, current) => {
+                        // Prefer employees with less workload but don't force equal distribution
+                        if (current.currentTotal < best.currentTotal * 0.8) return current;
+                        return best;
+                    });
+
+                    results.employeeTasks[bestEmployee.name].push(order);
+                    bestEmployee.currentTotal += order.packQty;
+                    bestEmployee.remainingCapacity -= order.packQty;
+                } else {
+                    results.unassigned.push(order);
+                }
+            });
+
+            // Sort each employee's orders by date and urgency
+            Object.keys(results.employeeTasks).forEach(name => {
+                results.employeeTasks[name].sort((a, b) => {
+                    const dateA = new Date(a['Data ordine']);
+                    const dateB = new Date(b['Data ordine']);
+                    const dateCompare = dateA - dateB;
+                    if (dateCompare !== 0) return dateCompare;
+                    return b.isUrgent ? 1 : -1;
+                });
+            });
+
+            return results;
+        }
+
+        // Display results with optimized table layout
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('distributionResults');
+            let html = '';
+
+            // Display employee tasks
+            Object.entries(results.employeeTasks).forEach(([name, tasks]) => {
+                const emp = employees[name];
+                const totalQty = tasks.reduce((sum, task) => sum + parseInt(task['Pack Qty']), 0);
+                
+                html += `
+                    <div class="capacity-info">
+                        <h4>${name}</h4>
+                        <div>Assigned: ${totalQty} / Max Capacity: ${emp.maxPicking}</div>
+                    </div>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Order No.</th>
+                                <th>Order Date</th>
+                                <th>Pack Qty</th>
+                                <th>Accumulated</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                let accumulatedQty = 0;
+                tasks.forEach(task => {
+                    const qty = parseInt(task['Pack Qty']);
+                    accumulatedQty += qty;
+                    const notes = task['Nota (privata)'] || '-';
+                    const isUrgent = notes.includes('URGENTE');
+                    html += `
+                        <tr${isUrgent ? ' style="color: red;"' : ''}>
+                            <td>${task['Rif.']}</td>
+                            <td>${task['Data ordine']}</td>
+                            <td>${qty}</td>
+                            <td>${accumulatedQty}</td>
+                            <td>${notes}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            <tr class="total-row">
+                                <td>Total</td>
+                                <td>-</td>
+                                <td>${totalQty}</td>
+                                <td>${totalQty}</td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+            });
+
+            // Display 2P orders
+            if (results.twoPOrders.length > 0) {
+                const total2P = results.twoPOrders.reduce((sum, task) => sum + parseInt(task['Pack Qty']), 0);
+                html += `
+                    <div class="capacity-info">
+                        <h4>2P Orders</h4>
+                    </div>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Order No.</th>
+                                <th>Order Date</th>
+                                <th>Pack Qty</th>
+                                <th>Accumulated</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                let accumulated2P = 0;
+                results.twoPOrders.forEach(task => {
+                    const qty = parseInt(task['Pack Qty']);
+                    accumulated2P += qty;
+                    html += `
+                        <tr>
+                            <td>${task['Rif.']}</td>
+                            <td>${task['Data ordine']}</td>
+                            <td>${qty}</td>
+                            <td>${accumulated2P}</td>
+                            <td>${task['Nota (privata)'] || '-'}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            <tr class="total-row">
+                                <td>Total</td>
+                                <td>-</td>
+                                <td>${total2P}</td>
+                                <td>${total2P}</td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            // Display unassigned orders
+            if (results.unassigned.length > 0) {
+                const totalUnassigned = results.unassigned.reduce((sum, task) => sum + parseInt(task['Pack Qty']), 0);
+                html += `
+                    <div class="capacity-info">
+                        <h4>Unassigned Orders</h4>
+                    </div>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Order No.</th>
+                                <th>Order Date</th>
+                                <th>Pack Qty</th>
+                                <th>Accumulated</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                let accumulatedUnassigned = 0;
+                results.unassigned.forEach(task => {
+                    const qty = parseInt(task['Pack Qty']);
+                    accumulatedUnassigned += qty;
+                    const notes = task['Nota (privata)'] || '-';
+                    const isUrgent = notes.includes('URGENTE');
+                    html += `
+                        <tr${isUrgent ? ' style="color: red;"' : ''}>
+                            <td>${task['Rif.']}</td>
+                            <td>${task['Data ordine']}</td>
+                            <td>${qty}</td>
+                            <td>${accumulatedUnassigned}</td>
+                            <td>${notes}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            <tr class="total-row">
+                                <td>Total</td>
+                                <td>-</td>
+                                <td>${totalUnassigned}</td>
+                                <td>${totalUnassigned}</td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // Export functions
+        function exportToExcel() {
+            if (!distributionResults) {
+                alert('No data available for export!');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            
+            // Export employee tasks
+            Object.entries(distributionResults.employeeTasks).forEach(([name, tasks]) => {
+                if (tasks.length > 0) {
+                    let accumulatedQty = 0;
+                    const data = tasks.map(task => {
+                        const qty = parseInt(task['Pack Qty']);
+                        accumulatedQty += qty;
+                        return {
+                            'Order No.': task['Rif.'],
+                            'Order Date': task['Data ordine'],
+                            'Pack Qty': qty,
+                            'Accumulated': accumulatedQty,
+                            'Notes': task['Nota (privata)'] || ''
+                        };
+                    });
+                    const ws = XLSX.utils.json_to_sheet(data);
+                    XLSX.utils.book_append_sheet(wb, ws, name);
+                }
+            });
+
+            // Export 2P orders
+            if (distributionResults.twoPOrders.length > 0) {
+                let accumulated2P = 0;
+                const data = distributionResults.twoPOrders.map(task => {
+                    const qty = parseInt(task['Pack Qty']);
+                    accumulated2P += qty;
+                    return {
+                        'Order No.': task['Rif.'],
+                        'Order Date': task['Data ordine'],
+                        'Pack Qty': qty,
+                        'Accumulated': accumulated2P,
+                        'Notes': task['Nota (privata)'] || ''
+                    };
+                });
+                const ws = XLSX.utils.json_to_sheet(data);
+                XLSX.utils.book_append_sheet(wb, ws, '2P Orders');
+            }
+
+            // Export unassigned orders
+            if (distributionResults.unassigned.length > 0) {
+                let accumulatedUnassigned = 0;
+                const data = distributionResults.unassigned.map(task => {
+                    const qty = parseInt(task['Pack Qty']);
+                    accumulatedUnassigned += qty;
+                    return {
+                        'Order No.': task['Rif.'],
+                        'Order Date': task['Data ordine'],
+                        'Pack Qty': qty,
+                        'Accumulated': accumulatedUnassigned,
+                        'Notes': task['Nota (privata)'] || ''
+                    };
+                });
+                const ws = XLSX.utils.json_to_sheet(data);
+                XLSX.utils.book_append_sheet(wb, ws, 'Unassigned Orders');
+            }
+
+            const date = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `Task Distribution Results_${date}.xlsx`);
+        }
+
+        function exportToPDF() {
+            if (!distributionResults) {
+                alert('No data available for export!');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let yPos = 20;
+
+            // Add title
+            doc.setFontSize(16);
+            doc.text('Task Distribution Results', 14, yPos);
+            yPos += 10;
+
+            // Add employee tasks
+            Object.entries(distributionResults.employeeTasks).forEach(([name, tasks]) => {
+                if (tasks.length === 0) return;
+
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+
+                const emp = employees[name];
+                const totalQty = tasks.reduce((sum, task) => sum + parseInt(task['Pack Qty']), 0);
+
+                doc.setFontSize(12);
+                doc.text(`${name} (${totalQty}/${emp.maxPicking})`, 14, yPos);
+                yPos += 5;
+
+                let accumulatedQty = 0;
+                const tableData = tasks.map(task => {
+                    const qty = parseInt(task['Pack Qty']);
+                    accumulatedQty += qty;
+                    return [
+                        task['Rif.'],
+                        task['Data ordine'],
+                        qty.toString(),
+                        accumulatedQty.toString(),
+                        task['Nota (privata)'] || '-'
+                    ];
+                });
+
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['Order No.', 'Order Date', 'Pack Qty', 'Accumulated', 'Notes']],
+                    body: tableData,
+                    margin: { left: 14 },
+                    columnStyles: {
+                        0: { cellWidth: 30 },
+                        1: { cellWidth: 30 },
+                        2: { cellWidth: 25 },
+                        3: { cellWidth: 25 },
+                        4: { cellWidth: 'auto' }
+                    }
+                });
+
+                yPos = doc.lastAutoTable.finalY + 10;
+            });
+
+            const date = new Date().toISOString().split('T')[0];
+            doc.save(`Task Distribution Results_${date}.pdf`);
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,171 @@
+/* 添加所有CSS样式 */ 
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f0f0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #ddd;
+}
+
+.tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 16px;
+}
+
+.tab.active {
+    border-bottom: 2px solid #2196F3;
+    color: #2196F3;
+    margin-bottom: -2px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.employee-container {
+    display: flex;
+    gap: 20px;
+}
+
+.employee-list {
+    flex: 1;
+    padding: 20px;
+    background: #f8f8f8;
+    border-radius: 4px;
+}
+
+.employee-form {
+    flex: 2;
+    padding: 20px;
+    background: #f8f8f8;
+    border-radius: 4px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+button {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 5px;
+}
+
+button:hover {
+    background-color: #1976D2;
+}
+
+.employee-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: white;
+    margin-bottom: 5px;
+    border-radius: 4px;
+}
+
+.task-upload {
+    margin-bottom: 20px;
+}
+
+.results {
+    margin-top: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+.step {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8f8f8;
+    border-radius: 4px;
+}
+
+.step h3 {
+    color: #2196F3;
+    margin-top: 0;
+}
+
+.attendance-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.attendance-item {
+    background: white;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.next-step-button {
+    background-color: #4CAF50;
+    margin-top: 15px;
+}
+
+.export-button {
+    background-color: #FF9800;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.results-table th,
+.results-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.results-table th {
+    background-color: #f5f5f5;
+}
+
+.results-section {
+    margin-bottom: 20px;
+} 
